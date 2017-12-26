@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="dummy-rtsp-client_main:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/dummy_rtsp_client_main_jar</output-path>
+    <root id="archive" name="dummy-rtsp-client_main.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/out/artifacts/dummy_rtsp_client_main_jar/META-INF/MANIFEST.MF" />
+      </element>
+      <element id="module-output" name="dummy-rtsp-client_main" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-core/2.8.2/979fc0cf8460302e4ffbfe38c1b66a99450b0bb7/log4j-core-2.8.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-api/2.8.2/e590eeb783348ce8ddef205b82127f9084d82bf3/log4j-api-2.8.2.jar" path-in-jar="/" />
+      <element id="file-copy" path="$PROJECT_DIR$/src/main/resources/log4j2.xml" />
+    </root>
+  </artifact>
+</component>
