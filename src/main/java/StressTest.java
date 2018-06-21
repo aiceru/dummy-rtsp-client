@@ -3,10 +3,39 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class StressTest {
     private final static Logger logger = LogManager.getLogger(StressTest.class);
-
+    
+    public void randomGen_1_200ms(String _uri, int clientCount, int durationSec) {
+        int threadCount = clientCount;
+        String uri = _uri;
+        ExecutorService service = Executors.newCachedThreadPool();
+        
+        for(int i = 0; i < threadCount; i++)
+        {
+            try {
+                service.execute(new RtspClient(uri, 4000));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            logger.debug("Thread #" + i + " added");
+        }
+        
+        service.shutdown();
+        try {
+            if( !service.awaitTermination(durationSec, TimeUnit.SECONDS) ) {
+                service.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            service.shutdownNow();
+        }
+    }
+/*
     public static void main(String[] args) {
         List<Thread> threadList = new ArrayList<>();
         Random r = new Random();
@@ -50,7 +79,7 @@ public class StressTest {
                     Thread.sleep(r.nextInt(20)+1);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
-                    logger.debug("Server Address : " + client.getServerAddr());
+                    logger.debug("Server Address : " + client.getUri());
                 }
             }
 
@@ -130,36 +159,6 @@ public class StressTest {
                 }
             }
         } else if("customserver".equals(args[0])) {
-            int threadCount = Integer.parseInt(args[1]);
-            String serverAddrString = args[2];
-            for (int i = 0; i < threadCount; i++) {
-                Thread t = null;
-                RtspClient client = null;
-                try {
-                    client = new RtspClient(serverAddrString, 4000);
-                    t = new Thread(client);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return;
-                }
-                t.start();
-                threadList.add(t);
-                logger.debug("Thread #" + i + " added");
-                try {
-                    Thread.sleep(r.nextInt(200) + 1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    logger.debug("Server Address : " + client.getServerAddr());
-                }
-            }
-
-            for (int i = 0; i < threadCount; i++) {
-                try {
-                    threadList.get(i).join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
         }
-    }
+    }*/
 }

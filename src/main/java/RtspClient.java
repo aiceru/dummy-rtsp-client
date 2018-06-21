@@ -13,6 +13,8 @@ import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by wooseok on 17. 8. 9.
@@ -20,39 +22,42 @@ import java.util.Random;
 public class RtspClient implements Runnable {
     private static final Logger logger = LogManager.getLogger(RtspClient.class);
 
-    private static final int SERVER_PORT = 10353;
     private static final String STRING_RTSP_VER = "RTSP/1.0";
     private static final String STRING_USER_AGENT = "User-Agent: LibVLC/2.2.4 (LIVE555 Streaming Media v2016.02.22)";
     private static final String STRING_CRLF = "\r\n";
 
-    private InetSocketAddress mlsServerAddr;
+    private InetSocketAddress serverSocketAddr;
     private SocketChannel rtspChannel;
 
     private Map<Integer, PublishingPoint> _publishingPoints;
     private String session;
     private UdpClient udpClient;
+    private String uri;
     private String serverAddr;
+    private int serverPort;
+    private String streamPath;
     private int cseq;
     private int bitrate = 0;
     
-    public String getServerAddr() {
-        return serverAddr;
+    public String getUri() {
+        return uri;
     }
 
-    public RtspClient(int _bitrate) throws IOException {
-        serverAddr = getTargetServer("https://kcm3itpdu3.execute-api.ap-northeast-2.amazonaws.com/beta/");
-        mlsServerAddr = new InetSocketAddress(serverAddr, SERVER_PORT);
+    public RtspClient(String _uri, int _bitrate) throws IOException {
+        uri = _uri;
+        parseUri(uri);
+        serverSocketAddr = new InetSocketAddress(serverAddr, serverPort);
         _publishingPoints = new HashMap<>();
         cseq = 0;
         this.bitrate = _bitrate;
     }
-
-    public RtspClient(String _serverAddr, int _bitrate) throws IOException {
-        serverAddr = _serverAddr;
-        mlsServerAddr = new InetSocketAddress(serverAddr, SERVER_PORT);
-        _publishingPoints = new HashMap<>();
-        cseq = 0;
-        this.bitrate = _bitrate;
+    
+    // rtsp://61.253.126.134:10353/app01/ch01/test
+    private void parseUri(String uri) {
+        String[] tokens = uri.split("://")[1].split("/", 2);
+        serverAddr = tokens[0].split(":")[0];
+        serverPort = Integer.parseInt(tokens[0].split(":")[1]);
+        streamPath = tokens[1];
     }
 
     private String getTargetServer(String apiAddr) throws IOException {
@@ -76,7 +81,7 @@ public class RtspClient implements Runnable {
     }
 
     public void connect() throws IOException {
-        rtspChannel = SocketChannel.open(mlsServerAddr);
+        rtspChannel = SocketChannel.open(serverSocketAddr);
     }
 
     private int sendMessage(String request) throws IOException {
@@ -91,7 +96,7 @@ public class RtspClient implements Runnable {
 
     public void sendOptions() throws IOException {
         StringBuilder builder = new StringBuilder()
-                .append("OPTIONS rtsp://").append(serverAddr).append(" ").append(STRING_RTSP_VER)
+                .append("OPTIONS rtsp://").append(uri).append(" ").append(STRING_RTSP_VER)
                 .append(STRING_CRLF)
                 .append("CSeq: ").append(cseq).append(STRING_CRLF)
                 .append(STRING_USER_AGENT).append(STRING_CRLF)
@@ -102,7 +107,7 @@ public class RtspClient implements Runnable {
 
     public void sendDescribe() throws IOException {
         StringBuilder builder = new StringBuilder()
-                .append("DESCRIBE rtsp://").append(serverAddr).append("/live/ch01/multicast ")
+                .append("DESCRIBE ").append(uri).append(" ")
                 .append(STRING_RTSP_VER).append(STRING_CRLF)
                 .append("CSeq: ").append(cseq).append(STRING_CRLF)
                 .append(STRING_USER_AGENT).append(STRING_CRLF)
@@ -174,7 +179,7 @@ public class RtspClient implements Runnable {
 
         udpClient = new UdpClient(serverAddr);
         udpClient.setSession(session);
-        udpClient.sendSession();
+        udpClient.holepunch();
     }
 
     public void sendPlay() throws IOException {
@@ -187,7 +192,6 @@ public class RtspClient implements Runnable {
                 .append(STRING_CRLF);
         cseq++;
         sendMessage(builder.toString());
-        //logger.debug("====================\nPLAY REQUEST:\n" + builder.toString() + "\n\n");
     }
 
     public void sendMmtKeepAlive() throws IOException {
@@ -214,25 +218,31 @@ public class RtspClient implements Runnable {
                 .append("Session: ").append(session).append(STRING_CRLF);
         cseq++;
         sendMessage(builder.toString());
-        //logger.debug("====================\nTEARDOWN REQUEST:\n" + builder.toString() + "\n\n");
     }
 
     @Override
     public void run() {
         Random r = new Random();
+        String res;
         try {
             connect();
+            sendOptions();
+            res = recvResponse();
+//            logger.debug("==================\nOPTIONS response:\n" + res + "\n\n");
             sendDescribe();
-            String res = recvResponse();
-            //logger.debug("==================\nDESCRIBE response:\n" + res + "\n\n");
+            res = recvResponse();
+//            logger.debug("==================\nDESCRIBE response:\n" + res + "\n\n");
             getPublishingPoints(res);
             sendSetup();
             res = recvResponse();
-            //logger.debug("==================\nSETUP response:\n" + res + "\n\n");
+//            logger.debug("==================\nSETUP response:\n" + res + "\n\n");
             setupSession(res);
             sendPlay();
             res = recvResponse();
-            //logger.debug("==================\nPLAY response:\n" + res + "\n\n");
+//            logger.debug("==================\nPLAY response:\n" + res + "\n\n");
+    
+            ExecutorService service = Executors.newSingleThreadExecutor();
+            service.execute(udpClient);
 
             while(!Thread.currentThread().isInterrupted()) {
                 try {
@@ -243,6 +253,8 @@ public class RtspClient implements Runnable {
                 } catch (InterruptedException e) {
                     sendTeardown();
                     res = recvResponse();
+                    udpClient.terminate();
+                    service.shutdownNow();
                     break;
                 }
             }
