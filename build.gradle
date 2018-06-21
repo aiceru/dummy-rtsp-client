@@ -1,4 +1,4 @@
-group 'com.hecaslab'
+group 'com.sktmlab'
 version '1.0-alpha'
 
 apply plugin: 'java'

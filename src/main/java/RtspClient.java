@@ -233,6 +233,11 @@ public class RtspClient implements Runnable {
             res = recvResponse();
 //            logger.debug("==================\nDESCRIBE response:\n" + res + "\n\n");
             getPublishingPoints(res);
+            if(_publishingPoints.isEmpty()) {
+                logger.debug("RTSP client #" + Thread.currentThread().getId() + ": " +
+                        "cannot find publishing points");
+                return;
+            }
             sendSetup();
             res = recvResponse();
 //            logger.debug("==================\nSETUP response:\n" + res + "\n\n");
@@ -247,9 +252,13 @@ public class RtspClient implements Runnable {
             while(!Thread.currentThread().isInterrupted()) {
                 try {
                     sendMmtKeepAlive();
-                    Thread.sleep(r.nextInt(10000)+10000);
+                    Thread.sleep(r.nextInt(10000) + 10000);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    if(e.getMessage().contains("Broken pipe")) {
+                        //
+                    } else {
+                        e.printStackTrace();
+                    }
                 } catch (InterruptedException e) {
                     sendTeardown();
                     res = recvResponse();

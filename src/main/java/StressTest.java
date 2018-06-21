@@ -2,7 +2,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -10,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 public class StressTest {
     private final static Logger logger = LogManager.getLogger(StressTest.class);
     
-    public void randomGen_1_200ms(String _uri, int clientCount, int durationSec) {
+    public static void randomGen_1_200ms(String _uri, int clientCount, int durationSec) {
         int threadCount = clientCount;
         String uri = _uri;
         ExecutorService service = Executors.newCachedThreadPool();
@@ -22,7 +21,7 @@ public class StressTest {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            logger.debug("Thread #" + i + " added");
+            //logger.debug("Thread #" + i + " added");
         }
         
         service.shutdown();
@@ -34,6 +33,10 @@ public class StressTest {
             e.printStackTrace();
             service.shutdownNow();
         }
+    }
+    
+    public static void main(String[] args) {
+        randomGen_1_200ms("rtsp://61.253.126.134:10353/app01/ch01/test", 1000, 600);
     }
 /*
     public static void main(String[] args) {

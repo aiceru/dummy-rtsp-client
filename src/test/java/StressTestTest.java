@@ -21,6 +21,6 @@ public class StressTestTest {
     @Test
     public void randomGen_1_200ms() {
         StressTest st = new StressTest();
-        st.randomGen_1_200ms("rtsp://61.253.126.134:10353/app01/ch01/test", 500, 600);
+        st.randomGen_1_200ms("rtsp://61.253.126.134:10353/app01/ch01/test", 1000, 600);
     }
 }
