@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.DatagramChannel;
 
 public class UdpClient implements Runnable {
@@ -69,6 +70,8 @@ public class UdpClient implements Runnable {
                 sa = dChannel.receive(buf);
                 buf.flip();
                 receivedBytes += buf.limit();
+            } catch (ClosedByInterruptException e) {
+                break;
             } catch (IOException e) {
                 e.printStackTrace();
             }
